@@ -12,13 +12,12 @@ confinement: strict # use 'strict' once you have the right plugs and slots
 compression: lzo    # should make startup nearly as fast as regular executables
 adopt-info: curl
 
-architectures:
+#architectures:
   - build-on: s390x
   - build-on: ppc64el
   - build-on: arm64
   - build-on: armhf
   - build-on: amd64
-  - build-on: i386
 
 apps: 
   curl:
