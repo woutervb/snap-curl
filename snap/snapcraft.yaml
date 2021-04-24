@@ -19,11 +19,19 @@ architectures:
   - build-on: armhf
   - build-on: amd64
 
+plugs:
+  dot-config-files:
+    interface: personal-files
+    read:
+      - $HOME/.curlrc
+
 apps: 
   curl:
     command: bin/curl
     plugs:
       - network
+      - home
+      - dot-config-files
 
 parts:
   bsi-trigger:      # Just a part that will allow us to get triggered via github updates
