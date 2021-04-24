@@ -1,14 +1,24 @@
 name: curl
-base: core18
-adopt-info: curl
+base: core20
 summary: CLI tool for transferring data with URL syntax (HTTP, HTTPS, etc)
+license: curl
 description: |
     A command line tool and library for transferring data with URL syntax, 
     supporting HTTP, HTTPS, FTP, FTPS, GOPHER, TFTP, SCP, SFTP, SMB, TELNET, 
     DICT, LDAP, LDAPS, FILE, IMAP, SMTP, POP3, RTSP and RTMP. 
     libcurl offers a myriad of powerful features
-grade: stable # must be 'stable' to release into candidate/stable channels
+grade: stable       # must be 'stable' to release into candidate/stable channels
 confinement: strict # use 'strict' once you have the right plugs and slots
+compression: lzo    # should make startup nearly as fast as regular executables
+adopt-info: curl
+
+architectures:
+  - build-on: s390x
+  - build-on: ppc64el
+  - build-on: arm64
+  - build-on: armhf
+  - build-on: amd64
+  - build-on: i386
 
 apps: 
   curl:
@@ -17,10 +27,28 @@ apps:
       - network
 
 parts:
+  bsi-trigger:      # Just a part that will allow us to get triggered via github updates
+    plugin: nil
+    source: https://github.com/curl/curl.git
   curl:
     plugin: autotools
-    source: https://github.com/curl/curl.git
+    autotools-configure-parameters:
+      - --with-libssh
+      - --enable-threaded-resolver
+      - --with-nghttp2
+      - --with-gssapi
+      - --enable-alt-svc
+      - --disable-dependency-tracking
+      - --prefix=/
+    source: .
     build-packages:
+      # package download tools
+      - jq
+      - sed
+      - tar
+      - wget
+      # Curl build dependencies
+      - libgsasl7-dev
       - libssl-dev
       - libssh-dev
       - zlib1g-dev
@@ -28,32 +56,37 @@ parts:
       - libidn11-dev
       - librtmp-dev
       - libldap2-dev
+      - libnghttp2-dev
+      - libzstd-dev
+      - libpsl-dev
+      - libkrb5-dev
+      # for build-in manual
+      - groff
     stage-packages:
+      - libssh-4
+      - libpsl5
+      - libzstd1
+      - libgsasl7
       - libbrotli1
       - libidn2-0
       - libldap-2.4-2
       - librtmp1
       - libsasl2-2
-      - libssl1.0.0
-      - libwind0-heimdal
-      - libasn1-8-heimdal
-      - libhcrypto4-heimdal
-      - libheimbase1-heimdal
-      - libheimntlm0-heimdal
-      - libhx509-5-heimdal
-      - libroken18-heimdal
-      - libkrb5-26-heimdal
+      - libssl1.1
+      - libnghttp2-14
     override-pull: |
-      set -eu
-      snapcraftctl pull
-      last_committed_tag="$(git describe --tags --abbrev=0)"
-      last_committed_tag_ver="$(echo ${last_committed_tag} | sed -e 's/curl-//' -e 's/_/./g')"
-      last_released_tag="$(snap info $SNAPCRAFT_PROJECT_NAME | awk '$1 == "latest/beta:" { print $2 }')"
-      # If the latest tag from the upstream project has not been released to
-      # beta, build that tag instead of master.
-      if [ "${last_committed_tag_ver}" != "${last_released_tag}" ]; then
-        git fetch
-        git checkout "${last_committed_tag}"
-      fi
-      ./maketgz ${last_committed_tag_ver} only
-      snapcraftctl set-version ${last_committed_tag_ver}
+      set +x
+      set -e
+      echo "Get GitHub releases..."
+      wget --quiet https://api.github.com/repos/curl/curl/releases -O releases.json
+      VERSION_RAW=$(grep . releases.json | grep tag_name | cut -d '"' -f4 | head -1)
+      TARBALL_URL=$(grep browser_download releases.json | grep "${VERSION_RAW}\/" | grep ".tar.gz" | cut -d'"' -f4 | grep -v "asc")
+      TARBALL=$(basename "${TARBALL_URL}")
+      echo "Downloading ${TARBALL_URL}..."
+      wget --quiet "${TARBALL_URL}" -O "${TARBALL}"
+      echo "Unpacking ${TARBALL}..."
+      tar xf "${TARBALL}" --strip-components=1
+      rm releases.json "${TARBALL}"
+      VERSION=$(grep "#define LIBCURL_VERSION " include/curl/curlver.h | cut -d '"' -f2)
+      echo "Setting version to ${VERSION}..."
+      snapcraftctl set-version ${VERSION}
