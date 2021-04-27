@@ -20,7 +20,7 @@ architectures:
   - build-on: amd64
 
 plugs:
-  dot-config-files:
+  dot-curlrc:
     interface: personal-files
     read:
       - $HOME/.curlrc
@@ -31,7 +31,7 @@ apps:
     plugs:
       - network
       - home
-      - dot-config-files
+      - dot-curlrc
 
 parts:
   bsi-trigger:      # Just a part that will allow us to get triggered via github updates
