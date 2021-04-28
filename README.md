@@ -63,6 +63,6 @@ Installation
 
 At the moment the snap is not released to stable, pending feedback on performance and features, as I am not able to test all of them. This means installation has to be done in the following way:
 
-    snapcraft install curl --channel edge
+    snap install curl --channel edge
 
 At a later stage, when a stable release is present this document will be updated to include details on how to do an installation from stable, and on how to switch channels.
