@@ -47,6 +47,7 @@ parts:
       - --enable-alt-svc
       - --disable-dependency-tracking
       - --prefix=/
+      - --with-openssl
     source: .
     build-packages:
       # package download tools
